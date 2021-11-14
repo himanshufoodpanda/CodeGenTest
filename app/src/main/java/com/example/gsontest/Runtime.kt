@@ -1,10 +1,10 @@
 package com.example.gsontest
 
-import com.google.gson.Gson
-import com.google.gson.annotations.Expose
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlinx.serialization.json.Json
 import java.lang.StringBuilder
-import kotlin.properties.Delegates
 
 
 // @generated
@@ -32,21 +32,21 @@ sealed class GraphQLRequestType(val rawType: String) {
 
 interface GraphQLNetworkModel : Codable
 
+@Serializable
 open class GraphQLRequesting : Encodable {
-    @SerializedName("operationName")
-    @Expose
+    @SerialName("operationName")
     lateinit var operationName: String
 
-    @SerializedName("query")
-    @Expose
+    @SerialName("query")
     lateinit var operationDefinition: String
 
-    @SerializedName("variables")
-    @Expose
+    @SerialName("variables")
     lateinit var parameters: GraphQLRequestParameters
 
+    @Transient
     lateinit var parametersString: String
-
+    
+    @Transient
     lateinit var requestType: GraphQLRequestType
 }
 
@@ -118,21 +118,13 @@ open class GraphQLRequest<T> : GraphQLRequesting {
         var container = encoder.getContainerWithKeys()
         container.encode(operationName, CodingKeys.operationName.rawValue)
         container.encode(parametersString, CodingKeys.parameters.rawValue)
-        when (requestType) {
-            is GraphQLRequestType.query -> {
-                container.encode(operationDefinition, GraphQLRequestType.query.rawType)
-            }
-            is GraphQLRequestType.mutation -> {
-                container.encode(operationDefinition, GraphQLRequestType.mutation.rawType)
-            }
-        }
-
+        container.encode(operationDefinition, requestType.rawType)
     }
 }
 
 // MARK: - Request Parameters implementation
 
-open class ProductRequestParameters(@Expose val id: String?) : GraphQLRequestParameters {
+open class ProductRequestParameters(val id: String?) : GraphQLRequestParameters {
     sealed class Selection(val rawType: String) : GraphQLSelection {
         object all : Selection("id\n  price\n originalPrice")
 
@@ -172,6 +164,7 @@ open class ProductRequestParameters(@Expose val id: String?) : GraphQLRequestPar
 
 }
 
+@Serializable
 open class UpdateProductRequestParameters() : GraphQLRequestParameters {
     sealed class Selection(val rawType: String) : GraphQLSelection {
         object all : Selection("id")
@@ -190,9 +183,12 @@ open class UpdateProductRequestParameters() : GraphQLRequestParameters {
 
   %2s
   """
+    @Transient
     override var requestType: GraphQLRequestType = GraphQLRequestType.mutation
 
+    @Transient
     override var fragmentKey: String = "...ProductFragment"
+
     override fun fragmentString (selections : Set <GraphQLSelection>):String
     {
         val result = StringBuilder("")
@@ -207,9 +203,8 @@ open class UpdateProductRequestParameters() : GraphQLRequestParameters {
     """
     }
 
-    @Expose
+    @Transient
     lateinit var product: ProductNetworkModel
-
 }
 
 /*
@@ -255,13 +250,15 @@ struct VendorRequestParameters: GraphQLRequestParameters {
 */
 
 // MARK: - Network Model
+@Serializable
 open class ProductNetworkModel(
-    @Expose val id: String,
-    @Expose val price:Double?,
-    @Expose val originalPrice:Double?
+    val id: String,
+    val price:Double?,
+    val originalPrice:Double?
 ) : GraphQLNetworkModel {
+
     override fun encode(): String {
-        return Gson().toJson(this)
+        return Json.encodeToString(serializer(),this)
     }
 }
 

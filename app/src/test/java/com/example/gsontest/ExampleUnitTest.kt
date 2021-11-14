@@ -1,6 +1,5 @@
 package com.example.gsontest
 
-import com.google.gson.Gson
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -12,35 +11,27 @@ import org.junit.Assert.*
  */
 class ExampleUnitTest {
     @Test
-    fun addition_isCorrect() {
-      /* val testing = Testing("Vendor","Name")
-        //var jsonString = Gson().toJson(testing)
-
-        val campaign = Campaign()
-        var jsonString = Gson().toJsonTree(campaign).asJsonObject.entrySet()
-        print(jsonString)
-*/
-
+    fun checkCodeGen() {
         var jsonEncoder = GsonEncoder()
 
-// Product Query
+        // Product Query
         var productRequest = ProductRequestFactory().request(
-            operationName="ProductDetailPage",
-            parameters=ProductRequestParameters("12345"),
-            selections= mutableSetOf(ProductRequestParameters.Selection.all)
+            operationName = "ProductDetailPage",
+            parameters = ProductRequestParameters("12345"),
+            selections = mutableSetOf(ProductRequestParameters.Selection.all)
         )
 
-       // var productJsonData = jsonEncoder.encode(productRequest)
-       // println(productJsonData)
+        var productJsonData = jsonEncoder.encode(productRequest)
+        println(productJsonData)
 
 
         var updateProductRequest = UpdateProductRequestFactory().request(
-            operationName="ProductDetailPage",
-            parameters= UpdateProductRequestParameters().also {
-                                                       it.product = ProductNetworkModel(id="12345",100.0,null)
+            operationName = "ProductDetailPage",
+            parameters = UpdateProductRequestParameters().also {
+                it.product = ProductNetworkModel(id = "12345", 100.0, null)
             },
-            selections= mutableSetOf(UpdateProductRequestParameters.Selection.all)
-            )
+            selections = mutableSetOf(UpdateProductRequestParameters.Selection.all)
+        )
 
         var updateProduct = jsonEncoder.encode(updateProductRequest)
         println(updateProduct)

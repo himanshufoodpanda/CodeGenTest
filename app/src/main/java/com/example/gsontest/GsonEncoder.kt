@@ -1,40 +1,35 @@
 package com.example.gsontest
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonBuilder
 
 
 class GsonEncoder:Encoder {
 
-    fun getGson():Gson{
-        return GsonBuilder()
-            .excludeFieldsWithoutExposeAnnotation()
-            .create()
+    fun getJson():Json{
+        return Json
     }
 
-    override fun encode(codable: Encodable):String {
-       return getGson().toJson(codable)
+    /*override fun encode( class:Class<*>,codable: KSerializer<*>):String {
+
+       return getGson().encodeToString((codable as SerializationStrategy<class>),codable)
+    }*/
+
+    override fun encode(codable: Encodable): String {
+     return Json.encodeToString(codable)
     }
 
     override fun encode(codable: String,key:String):String {
         val container = getContainerWithKeys()
         container.encode(codable,key)
-        return getGson().toJson(container.getContainerMap())
+        return getJson().encodeToString(Container.serializer(),container)
     }
 
-    override fun getContainerWithKeys():Encoder.Container{
-        val map = mutableMapOf<String,String>()
+    override fun getContainerWithKeys():Container {
+        val map = mutableMapOf<String, String>()
         val container = Container(map)
         return container
     }
 
-    class Container(val map: MutableMap<String, String>) :Encoder.Container {
-        override fun encode(codable: String, key: String) {
-           map.putIfAbsent(key,codable)
-        }
-
-        override fun getContainerMap(): Map<String, String> {
-            return map
-        }
-    }
 }
