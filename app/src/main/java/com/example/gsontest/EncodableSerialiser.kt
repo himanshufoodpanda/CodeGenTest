@@ -2,6 +2,7 @@ package com.example.gsontest
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -22,9 +23,12 @@ class EncodableSerialiser : KSerializer<Encodable> {
 
     override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: Encodable) {
         when(value) {
-            is ProductRequestParameters -> value
-            is UpdateProductRequestParameters -> encoder.encodeString("D")
-        }
+            is GraphQLRequest -> {
+                encoder.encodeSerializableValue(GraphQLRequest.serializer(),value)
+            }
+            is ProductRequestParameters -> value.id?.let { encoder.encodeSerializableValue(ProductRequestParameters.serializer(),value)}
+            is UpdateProductRequestParameters -> value.product?.let { encoder.encodeSerializableValue(ProductNetworkModel.serializer(),value.product)}
+            }
     }
 
 }

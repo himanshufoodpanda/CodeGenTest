@@ -17,7 +17,7 @@ class GsonEncoder:Encoder {
     }*/
 
     override fun encode(codable: Encodable): String {
-     return Json.encodeToString(codable)
+     return Json.encodeToString(serializer = EncodableSerialiser(),codable)
     }
 
     override fun encode(codable: String,key:String):String {

@@ -3,6 +3,12 @@ package com.example.gsontest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.json.Json
 import java.lang.StringBuilder
 
@@ -18,7 +24,7 @@ interface GraphQLRequestParameters : Encodable {
     var requestType: GraphQLRequestType
     var fragmentKey: String
 
-    fun fragmentString(sets: Set<GraphQLSelection>): String
+    fun fragmentString(selections: Set<GraphQLSelection>): String
 }
 
 interface GraphQLSelection {
@@ -56,7 +62,7 @@ interface GraphQLQueryRequestFactoring<T:GraphQLRequestParameters> {
         operationName: String,
         parameters: T,
         selections: Set<GraphQLSelection>
-    ): GraphQLRequest<T>
+    ): GraphQLRequest
 }
 
 // MARK: - Base class for all GraphQL request
@@ -69,7 +75,7 @@ open class GraphQLQueryRequestFactory<T:GraphQLRequestParameters> : GraphQLQuery
         operationName: String,
         parameters: T ,
         selections: Set<GraphQLSelection>
-    ): GraphQLRequest<T> {
+    ): GraphQLRequest {
         var inlineFragment = parameters.fragmentKey
         var fragment = parameters.fragmentString(selections)
 
@@ -90,8 +96,8 @@ open class GraphQLQueryRequestFactory<T:GraphQLRequestParameters> : GraphQLQuery
 }
 
 // MARK: - GraphQL Request
-
-open class GraphQLRequest<T> : GraphQLRequesting {
+@Serializable(with = GraphQLRequestSerialiser::class)
+open class GraphQLRequest : GraphQLRequesting {
 
     sealed class CodingKeys(val rawValue: String) {
         object operationName : CodingKeys("operationName")
@@ -114,6 +120,14 @@ open class GraphQLRequest<T> : GraphQLRequesting {
         this.requestType = requestType
     }
 
+    fun tryEncoder(encoder:kotlinx.serialization.encoding.Encoder){
+        var container = GsonEncoder().getContainerWithKeys()
+        container.encode(operationName, CodingKeys.operationName.rawValue)
+        container.encode(parametersString, CodingKeys.parameters.rawValue)
+        container.encode(operationDefinition, requestType.rawType)
+        encoder.encodeSerializableValue(MapSerializer(String.serializer(),String.serializer()),container.map)
+    }
+
     fun encode(encoder: Encoder) {
         var container = encoder.getContainerWithKeys()
         container.encode(operationName, CodingKeys.operationName.rawValue)
@@ -124,6 +138,7 @@ open class GraphQLRequest<T> : GraphQLRequesting {
 
 // MARK: - Request Parameters implementation
 
+@Serializable
 open class ProductRequestParameters(val id: String?) : GraphQLRequestParameters {
     sealed class Selection(val rawType: String) : GraphQLSelection {
         object all : Selection("id\n  price\n originalPrice")
@@ -133,7 +148,7 @@ open class ProductRequestParameters(val id: String?) : GraphQLRequestParameters 
         }
     }
 
-
+    @Transient
     override var operationDefinitionFormat: String = """query (${"$"}id: String!) {
     product(id: ${"$"}id) {
       %1s
@@ -142,7 +157,7 @@ open class ProductRequestParameters(val id: String?) : GraphQLRequestParameters 
 
   %2s
   """
-
+    @Transient
     override var fragmentKey: String = "...ProductFragment"
 
     override fun fragmentString(selections: Set<GraphQLSelection>): String {
@@ -159,7 +174,7 @@ open class ProductRequestParameters(val id: String?) : GraphQLRequestParameters 
     """
     }
 
-
+    @Transient
     override var requestType: GraphQLRequestType = GraphQLRequestType.query
 
 }
@@ -207,48 +222,6 @@ open class UpdateProductRequestParameters() : GraphQLRequestParameters {
     lateinit var product: ProductNetworkModel
 }
 
-/*
-struct VendorRequestParameters: GraphQLRequestParameters {
-    enum Selection : String, GraphQLSelection {
-        case rating
-                case ratingCount
-                case isOpen
-    }
-
-    lateinit var operationDefinitionFormat: String = """
-  query ($id: String!) {
-    product(id: $id) {
-      %2$@
-    }
-  }
-
-  %3$@
-  """
-
-    lateinit var id: String
-
-    lateinit var requestType: GraphQLRequestType = .query
-
-    lateinit var fragmentKey: String = "...VendorFragment"
-    // All fields marked as required allTypes.json will be in the format
-    // without the option to selectively query it or not
-    func fragmentString (_ selections : Set < Selection >) -> String {
-        """
-    fragment ProductFragment on Product {
-      id
-      latitude
-      longitude
-      \(selections.reduce(into: "") { $0 += "  \($1.rawValue)\n" })
-    }
-    """
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case id
-    }
-}
-*/
-
 // MARK: - Network Model
 @Serializable
 open class ProductNetworkModel(
@@ -267,42 +240,3 @@ open class ProductNetworkModel(
 typealias ProductRequestFactory = GraphQLQueryRequestFactory<ProductRequestParameters>
 
 typealias UpdateProductRequestFactory = GraphQLQueryRequestFactory<UpdateProductRequestParameters>
-
-/*typealias VendorRequestFactory = GraphQLQueryRequestFactory<
-        VendorRequestParameters
-        >*/
-
-// MARK: - Autogenerat code ends here, below are the example code on how to use the autogenerated code
-
-// MARK: - Demo Usage Code
-
-//lateinit var productJsonString = String(data: productJsonData, encoding:.utf8)!
-
-
-// Product Update
-/*lateinit var updateProductRequest = try !UpdateProductRequestFactory().request(
-    operationName: "ProductDetailPage",
-    parameters: .init(product: .init(id: "productId123", price: 100, originalPrice: nil)),
-    selections: [.all]
-    )
-
-    lateinit var updateProductJsonData = try !jsonEncoder.encode(updateProductRequest)
-        lateinit var updateProductJsonString =
-            String(data: updateProductJsonData, encoding:.utf8)!
-
-        print(updateProductJsonString)
-        print("")
-
-// Vendor Query
-        lateinit var vendorRequest = try !VendorRequestFactory().request(
-            operationName: "VendorListingPage",
-            parameters: .init(id: "vendorId123"),
-            selections: [.rating, .ratingCount]
-            )
-
-            lateinit var vendorJsonData = try !jsonEncoder.encode(vendorRequest)
-                lateinit var vendorJsonString =
-                    String(data: vendorJsonData, encoding:.utf8)!
-
-                print(vendorJsonString)
-                print("")*/

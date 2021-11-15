@@ -1,13 +1,12 @@
 package com.example.gsontest
 
-import com.google.gson.*
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
 import java.lang.reflect.Type
 
 class Testing(
-    @SerializedName("vendorId")
+    @SerialName("vendorId")
     val vendorId: String,
-    @SerializedName("name")
+    @SerialName("name")
     val name: String?
 ) : Selection {
     override var request: String
@@ -18,20 +17,3 @@ class Testing(
         set(value) {}
 }
 
-open class Campaign:JsonSerializer<Campaign>{
-
-    @SerializedName("helo")
-    val vendorId:String = "WOW"
-
-    @SerializedName("TIME")
-    val time:String = "Time"
-
-    override fun serialize(
-        src: Campaign?,
-        typeOfSrc: Type?,
-        context: JsonSerializationContext?
-    ): JsonElement {
-        val jsonElement = Gson().toJsonTree(this)
-        return jsonElement
-    }
-}
